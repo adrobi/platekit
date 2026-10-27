@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[dev]" pyinstaller
+      - name: Build Windows executable
+        shell: pwsh
+        run: |
+          python -m PyInstaller platekit.spec --noconfirm --workpath build-pyinstaller
+          Move-Item -Path dist/platekit.exe -Destination dist/platekit-windows-x64.exe -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: platekit-windows-x64
+          path: dist/platekit-windows-x64.exe
+      - name: Publish Windows executable to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/platekit-windows-x64.exe
+          generate_release_notes: true
+
+  linux-binary:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+      - run: python -m pip install -e ".[dev]" pyinstaller
+      - name: Build Linux executable
+        run: |
+          python -m PyInstaller platekit.spec --noconfirm --workpath build-pyinstaller
+          mv dist/platekit dist/platekit-linux-x86_64
+          chmod +x dist/platekit-linux-x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: platekit-linux-x86_64
+          path: dist/platekit-linux-x86_64
+      - name: Publish Linux executable to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/platekit-linux-x86_64
+          generate_release_notes: true
