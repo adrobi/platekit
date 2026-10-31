@@ -19,3 +19,7 @@ Thumbs.db
 .vscode/
 .env
 *.env
+
+# Local working notes, not published
+concept.ru.md
+docs/superpowers/
